@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.pytest_cache/
+
+# Node
+node_modules/
+*.tsbuildinfo
+
+# Next.js
+.next/
+out/
+build/
+
+# Testing artifacts
+test-results/
+playwright-report/
+coverage/
+
+# Env & secrets
+.env*
+*.pem
+
+# OS
+.DS_Store
+
+# Claude Code project settings
+.claude/
