@@ -140,7 +140,18 @@ chess-puzzle-trainer/
 - Submit button and status indicators styled for the chess aesthetic
 - Responsive: desktop first, mobile-aware
 
-### Phase 3 — Move Recording
+### Phase 2.1 — Paper/Ink UI Redesign
+- Migrates from dark "Tournament Analysis Room" theme to warm paper/ink aesthetic
+- Source: `designs/Hifi - Standard Split.html` (hi-fi mockup)
+- Fonts: Fraunces (serif display) + JetBrains Mono + Inter
+- Color: paper cream background (#faf7f0), blue player moves (#2a4f9b), red opponent moves (#a8331f), yellow cursor (#f0e07a)
+- New board-panel elements: turn plate (side to move), board mat frame, FEN meta strip
+- New analysis-panel elements: breadcrumb, stats (nodes/depth), recording status pulse, legend, Undo/Reset/Hint buttons
+- Phase 3 class names preserved: `.move-token.player/.opponent/.active`, `.board-container`, `.move-tree`, `.tree-line`
+- Brand name: Visualis
+- See `build_phases/phase2.1.md` for full design decisions
+
+### Phase 3 — Move Recording ✅ COMPLETE
 - Click source square → highlight it; click destination square → record move instantly
 - All recording is **local only** — no backend calls during recording
 - Moves are stored regardless of legality; illegal moves flagged only on Submit (Phase 6)
@@ -148,23 +159,32 @@ chess-puzzle-trainer/
 - Transparent overlay div captures clicks while Chessground stays `viewOnly: true`
 - New `PuzzleGame.tsx` client component owns state (`useReducer`) and wires board → tree
 - `shared/moveTree.ts`: `MoveNode` / `MoveTree` types + `addNode` / `buildLines` / `getCurrentFen`
-- See `build_phases/phase3.md` for full design decisions and build order
+- Tree renders as text with ASCII connectors; active move highlighted yellow (pulsing); inactive lines dimmed to 42% opacity
+- Board auto-orients to side-to-move; square highlight on first click; flip button; responsive board height
+- See `build_phases/phase3.md` and `build_phases/phase3.1.md` / `phase3.2.md` for full details
 
-### Phase 4 — Graph Visualization
-- Render move tree as text in the right panel
-- Highlight currently active line
-- Show branches with ASCII connectors, aligned under move text
+### Phase 4 — Tree Navigation
+- **Click any move token** in the graph → move `currentNodeId` cursor to that node
+- **Keyboard ←** : navigate to parent node
+- **Keyboard →** : navigate to first child
+- **Keyboard ↑ / ↓** : switch between sibling branches
+- **Breadcrumb** updates dynamically to show path from root to current node (e.g. `▸ start → Nd5 → f3`)
+- **Depth counter** computes and displays actual depth from root (replaces hardcoded `depth 0`)
+- Recording after navigating to a past node automatically creates a branch from there — no extra code needed, follows naturally from `currentNodeId` driving `addNode`
+- All navigation only moves the cursor — board never changes (still shows puzzle start position)
 
-### Phase 5 — Graph Navigation
-- Keyboard arrow key navigation (←→ for depth, ↑↓ for siblings)
-- Click any individual move in the graph to jump to that position
-- All navigation only affects graph highlight — board never changes
+### Phase 5 — Tree Editing (Undo / Reset)
+- **Undo button / ⌫ key** : delete the current node (and its entire subtree), navigate cursor to parent
+- **Reset button** : clear the entire tree back to the initial empty state
+- After Undo or Reset, recording resumes from the new `currentNodeId` position
+- Hint button wired: highlight the correct next move token (requires solution loaded — bridges into Phase 6)
 
 ### Phase 6 — Solution Checking
 - Load a puzzle with a known solution tree
 - Submit button triggers comparison of user's graph against solution
 - Flag: wrong moves (red), missing lines, correct lines (green)
 - User can retry incorrect moves after seeing the flags
+- Hint (from Phase 5) fully operational once solution is loaded
 
 ### Phase 7 — Puzzle Library
 - Load puzzles from Lichess puzzle CSV

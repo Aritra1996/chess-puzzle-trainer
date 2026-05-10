@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Chess Puzzle Trainer — Standard Split (Hi-fi)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  /* paper + ink (from wireframe A) */
+  --paper:#faf7f0;
+  --paper-2:#f3eee2;
+  --paper-3:#ebe4d2;
+  --ink:#1f1d1a;
+  --ink-soft:#5a544a;
+  --ink-faint:#a8a298;
+
+  /* accents */
+  --blue:#2a4f9b;
+  --blue-soft:rgba(42,79,155,.10);
+  --blue-edge:rgba(42,79,155,.35);
+  --red:#a8331f;
+  --red-soft:rgba(168,51,31,.10);
+  --red-edge:rgba(168,51,31,.32);
+  --yellow:#f0e07a;
+  --yellow-soft:rgba(240,224,122,.55);
+  --yellow-edge:rgba(196,170,40,.55);
+  --green:#5a7a3e;
+
+  /* board — Lichess brown theme */
+  --sq-light:#ebd6b0;
+  --sq-dark:#b58863;
+  --coord-on-light:rgba(31,29,26,.55);
+  --coord-on-dark:rgba(255,251,237,.78);
+
+  --serif:"Fraunces","Iowan Old Style","Hoefler Text",Georgia,serif;
+  --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono","Fira Mono","SF Mono",ui-monospace,monospace;
+
+  --shadow-card:0 1px 0 rgba(31,29,26,.04), 0 12px 32px rgba(31,29,26,.07);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+
+/* Subtle paper grain */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 1200px 600px at 20% 10%, rgba(168,141,86,.06), transparent 60%),
+    radial-gradient(ellipse 1000px 600px at 90% 90%, rgba(42,79,155,.04), transparent 60%);
+}
+
+.app{position:relative;z-index:1;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* HEADER */
+.app-header{
+  flex:0 0 auto;height:56px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;
+  background:var(--paper);
+  border-bottom:1px solid rgba(31,29,26,.08);
+  position:relative;z-index:5;
+}
+.brand{display:flex;align-items:baseline;gap:14px}
+.brand-logo{
+  font-family:var(--serif);font-size:22px;font-weight:600;letter-spacing:-0.01em;
+  font-variation-settings:"opsz" 144;
+  color:var(--ink);
+}
+.brand-tagline{
+  font-family:var(--sans);font-size:11px;color:var(--ink-soft);
+  letter-spacing:.16em;text-transform:uppercase;
+}
+.header-puzzle{
+  display:flex;align-items:center;gap:10px;
+  font-family:var(--mono);font-size:12px;color:var(--ink-soft);
+}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:3px 9px;
+  border:1px solid rgba(31,29,26,.14);
+  border-radius:999px;font-size:11px;
+  background:var(--paper);
+  color:var(--ink-soft);
+  font-family:var(--sans);font-weight:500;letter-spacing:.01em;
+}
+.chip.rating{color:var(--ink);font-weight:600;border-color:rgba(31,29,26,.22)}
+.chip.theme{color:var(--ink-soft)}
+.chip.theme::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--ink-faint)}
+.header-nav{display:flex;align-items:center;gap:6px}
+.nav-link{
+  padding:6px 10px;font-family:var(--sans);font-size:13px;color:var(--ink-soft);
+  text-decoration:none;border-radius:6px;transition:background .15s,color .15s;
+}
+.nav-link:hover{background:rgba(31,29,26,.05);color:var(--ink)}
+.avatar{
+  width:28px;height:28px;border-radius:50%;
+  background:linear-gradient(135deg,var(--paper-3),var(--paper-2));
+  border:1px solid rgba(31,29,26,.12);
+  display:grid;place-items:center;
+  font-family:var(--serif);font-size:13px;font-weight:600;color:var(--ink);
+  margin-left:8px;
+}
+
+/* PANELS */
+.panels{flex:1 1 0;display:grid;grid-template-columns:minmax(560px,1fr) minmax(420px,540px);min-height:0}
+
+/* LEFT — board */
+.panel-board{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:28px 32px;gap:18px;
+  background:linear-gradient(180deg,var(--paper) 0%,#f4ede0 100%);
+  border-right:1px solid rgba(31,29,26,.08);
+  position:relative;
+}
+
+/* "side to move" plate */
+.turn-plate{
+  display:flex;align-items:center;gap:14px;
+  padding:8px 16px;
+  background:var(--paper);
+  border:1px solid rgba(31,29,26,.10);
+  border-radius:999px;
+  box-shadow:var(--shadow-card);
+}
+.turn-pip{
+  width:14px;height:14px;border-radius:50%;
+  background:#1a1814;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18), 0 0 0 1px rgba(31,29,26,.5);
+}
+.turn-pip.white{background:#f5efdf;box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 0 0 1px rgba(31,29,26,.35)}
+.turn-text{
+  font-family:var(--serif);font-size:15px;font-weight:500;color:var(--ink);
+  font-variation-settings:"opsz" 18;
+}
+.turn-sub{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);letter-spacing:.1em;text-transform:uppercase}
+
+/* Board frame — cream paper on a paper mat */
+.board-mat{
+  position:relative;padding:20px;
+  background:var(--paper-2);
+  border-radius:4px;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.6) inset,
+    0 0 0 1px rgba(31,29,26,.10),
+    0 24px 48px rgba(31,29,26,.10),
+    0 6px 14px rgba(31,29,26,.06);
+}
+.board-mat::after{
+  content:"";position:absolute;inset:8px;
+  border:1px solid rgba(31,29,26,.10);
+  border-radius:2px;pointer-events:none;
+}
+
+.board{
+  position:relative;width:520px;height:520px;
+  display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);
+  border:1px solid rgba(31,29,26,.45);
+  background:var(--sq-light);
+}
+.sq{position:relative}
+.sq.dark{background:var(--sq-dark)}
+.sq.light{background:var(--sq-light)}
+
+/* highlights */
+.sq.selected::before{
+  content:"";position:absolute;inset:0;
+  background:var(--yellow-soft);
+  box-shadow:inset 0 0 0 3px var(--yellow-edge);
+}
+.sq.last-from::before,.sq.last-to::before{
+  content:"";position:absolute;inset:0;background:rgba(42,79,155,.18);
+}
+.sq.target-hint::after{
+  /* legal-target dot — kept subtle since spec says no live legal hints,
+     but for the SELECTED source we ghost a single chosen target preview */
+  content:"";position:absolute;left:50%;top:50%;width:18px;height:18px;
+  margin:-9px 0 0 -9px;border-radius:50%;
+  background:rgba(42,79,155,.22);
+  border:1.5px solid var(--blue);
+}
+
+/* coords — Lichess style: rank number top-left of left file, file letter bottom-right of bottom rank */
+.coord{
+  position:absolute;font-family:var(--sans);font-size:10px;font-weight:600;
+  letter-spacing:.02em;pointer-events:none;line-height:1;
+}
+.sq.light .coord{color:var(--coord-on-light)}
+.sq.dark .coord{color:var(--coord-on-dark)}
+.coord.f{bottom:2px;right:4px;text-transform:uppercase}
+.coord.r{top:3px;left:4px}
+
+/* pieces — Lichess cburnett SVGs */
+.piece{
+  position:absolute;inset:0;
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:88% 88%;
+  pointer-events:none;
+  /* tiny grounding shadow under the piece */
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.18));
+}
+
+/* drag arrow on board (last recorded move) */
+.board-arrows{position:absolute;inset:0;pointer-events:none}
+
+/* metadata strip under board */
+.meta-strip{
+  display:flex;align-items:center;gap:14px;
+  font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);
+  max-width:560px;width:100%;justify-content:center;
+}
+.meta-strip .lbl{color:var(--ink-soft);letter-spacing:.14em;text-transform:uppercase;font-size:9.5px}
+.meta-strip .val{
+  color:var(--ink-soft);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:380px;
+}
+.meta-strip .ico{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:22px;height:22px;border:1px solid rgba(31,29,26,.14);
+  border-radius:6px;color:var(--ink-soft);cursor:pointer;
+  font-family:var(--sans);font-size:11px;
+  transition:background .15s,color .15s,border-color .15s;
+}
+.meta-strip .ico:hover{background:var(--paper);color:var(--ink);border-color:rgba(31,29,26,.28)}
+
+/* RIGHT — analysis */
+.panel-analysis{
+  display:flex;flex-direction:column;min-width:0;
+  background:var(--paper);
+}
+
+.an-header{
+  flex:0 0 auto;
+  padding:18px 26px 14px;
+  border-bottom:1px solid rgba(31,29,26,.08);
+}
+.an-title-row{
+  display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+  margin-bottom:10px;
+}
+.an-title{
+  font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);
+  font-variation-settings:"opsz" 36;letter-spacing:-0.01em;
+}
+.an-stats{
+  display:flex;align-items:baseline;gap:12px;
+  font-family:var(--mono);font-size:11px;color:var(--ink-faint);
+}
+.an-stats .num{color:var(--ink);font-weight:600;font-size:13px}
+.an-stats .sep{color:var(--ink-faint);opacity:.6}
+
+/* breadcrumb of current line */
+.breadcrumb{
+  display:flex;align-items:center;flex-wrap:wrap;gap:5px;
+  font-family:var(--mono);font-size:12px;
+  color:var(--ink-soft);
+}
+.breadcrumb .num{color:var(--ink-faint);font-weight:400}
+.breadcrumb .player{color:var(--blue);font-weight:600}
+.breadcrumb .opp{color:var(--red);font-weight:600}
+.breadcrumb .sep{color:var(--ink-faint);font-family:var(--serif);font-style:italic;padding:0 2px}
+.breadcrumb .here{
+  margin-left:auto;
+  display:inline-flex;align-items:center;gap:5px;
+  font-family:var(--sans);font-size:10px;font-weight:600;
+  color:var(--ink);letter-spacing:.12em;text-transform:uppercase;
+  background:var(--yellow-soft);
+  padding:3px 9px;border-radius:999px;
+  border:1px solid var(--yellow-edge);
+}
+
+/* tree */
+.tree-wrap{
+  flex:1 1 0;overflow:auto;padding:22px 26px;
+  scrollbar-width:thin;scrollbar-color:rgba(31,29,26,.18) transparent;
+}
+.tree-wrap::-webkit-scrollbar{width:6px;height:6px}
+.tree-wrap::-webkit-scrollbar-thumb{background:rgba(31,29,26,.16);border-radius:3px}
+
+.move-tree{
+  font-family:var(--mono);font-size:13.5px;line-height:2.05;
+  white-space:pre;user-select:none;color:var(--ink);
+}
+.tree-line{position:relative;display:block;border-radius:3px;padding:0 4px;margin:0 -4px}
+.tree-line:not(.is-active-path){opacity:.42}
+.tree-line.is-active-path:hover{background:rgba(31,29,26,.025)}
+.tree-line.cursor-line{background:rgba(240,224,122,.18)}
+
+.seg-connector{color:var(--ink-faint)}
+.seg-number{color:var(--ink-soft);font-weight:400}
+.move-token{
+  cursor:pointer;border-radius:2px;padding:0 3px;margin:0 -3px;
+  transition:background .12s, color .12s;
+}
+.move-token.player{color:var(--blue);font-weight:600}
+.move-token.player:hover{background:var(--blue-soft)}
+.move-token.opp{color:var(--red);font-weight:600}
+.move-token.opp:hover{background:var(--red-soft)}
+.move-token.cursor{
+  background:var(--yellow);
+  color:var(--ink);
+  font-weight:700;
+  outline:1.5px solid var(--yellow-edge);
+  outline-offset:1px;
+  animation:blink 1.4s ease-in-out infinite;
+  padding:0 4px;
+}
+@keyframes blink{0%,100%{outline-color:var(--yellow-edge)}50%{outline-color:rgba(196,170,40,.95)}}
+
+.line-note{
+  display:inline-block;margin-left:14px;
+  font-family:var(--serif);font-style:italic;font-size:13px;
+  color:var(--ink-faint);font-variation-settings:"opsz" 18;
+}
+.branch-stub{
+  font-family:var(--serif);font-style:italic;font-size:13px;color:var(--ink-faint);
+  border-bottom:1px dashed var(--ink-faint);padding-bottom:1px;cursor:pointer;
+}
+.branch-stub:hover{color:var(--ink-soft);border-color:var(--ink-soft)}
+
+/* footer */
+.an-footer{
+  flex:0 0 auto;
+  padding:14px 26px 18px;
+  border-top:1px solid rgba(31,29,26,.08);
+  background:linear-gradient(180deg,transparent,rgba(235,228,210,.35));
+  display:flex;flex-direction:column;gap:12px;
+}
+
+.rec-status{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+.rec-left{display:flex;align-items:center;gap:10px}
+.pulse{
+  width:7px;height:7px;border-radius:50%;background:var(--blue);
+  box-shadow:0 0 0 0 rgba(42,79,155,.5);
+  animation:pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse{
+  0%{box-shadow:0 0 0 0 rgba(42,79,155,.45)}
+  70%{box-shadow:0 0 0 8px rgba(42,79,155,0)}
+  100%{box-shadow:0 0 0 0 rgba(42,79,155,0)}
+}
+.rec-text{font-family:var(--sans);font-size:13px;color:var(--ink-soft)}
+.rec-text .src{
+  font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink);
+  background:var(--yellow-soft);
+  padding:1px 6px;border-radius:3px;
+  border:1px solid var(--yellow-edge);
+}
+.rec-text .arrow{padding:0 4px;color:var(--ink-faint)}
+.rec-text .hint{font-family:var(--serif);font-style:italic;color:var(--ink-faint)}
+
+.legend{
+  display:flex;align-items:center;gap:12px;
+  font-family:var(--mono);font-size:10px;color:var(--ink-faint);
+  letter-spacing:.06em;text-transform:uppercase;
+}
+.legend .swatch{display:inline-flex;align-items:center;gap:5px}
+.legend .dot{width:8px;height:8px;border-radius:2px}
+.legend .dot.you{background:var(--blue)}
+.legend .dot.them{background:var(--red)}
+.legend .dot.cur{background:var(--yellow);border:1px solid var(--yellow-edge)}
+
+.actions{display:flex;gap:10px}
+.btn{
+  flex:0 0 auto;
+  padding:11px 16px;
+  background:var(--paper);
+  border:1px solid rgba(31,29,26,.14);
+  color:var(--ink-soft);
+  font-family:var(--sans);font-size:13px;font-weight:500;
+  letter-spacing:.01em;cursor:pointer;
+  border-radius:8px;
+  display:inline-flex;align-items:center;gap:7px;
+  transition:all .15s ease;
+}
+.btn:hover{color:var(--ink);border-color:rgba(31,29,26,.28);background:var(--paper-2)}
+.btn .kbd{
+  font-family:var(--mono);font-size:10px;
+  padding:1px 5px;border:1px solid rgba(31,29,26,.18);border-radius:3px;
+  color:var(--ink-faint);background:var(--paper-2);
+}
+.btn-primary{
+  flex:1 1 auto;
+  padding:13px 20px;
+  background:var(--ink);
+  border:1px solid var(--ink);
+  color:var(--paper);
+  font-family:var(--sans);font-size:13.5px;font-weight:600;
+  letter-spacing:.05em;cursor:pointer;
+  border-radius:8px;
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  transition:all .15s ease;
+}
+.btn-primary:hover{background:#0e0c0a}
+.btn-primary .kbd{
+  font-family:var(--mono);font-size:10px;
+  padding:1px 5px;border:1px solid rgba(255,255,255,.22);border-radius:3px;
+  color:rgba(255,255,255,.7);
+}
+
+/* keyboard hints in header */
+.kb-hints{display:flex;align-items:center;gap:4px}
+.k{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:22px;height:20px;padding:0 5px;
+  border:1px solid rgba(31,29,26,.16);border-radius:4px;
+  background:var(--paper);
+  font-family:var(--mono);font-size:10px;color:var(--ink-soft);line-height:1;
+}
+.kb-hints .lbl{font-family:var(--sans);font-size:11px;color:var(--ink-faint);margin-left:6px}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-logo">Visualis</div>
+      <div class="brand-tagline">puzzle trainer</div>
+    </div>
+
+    <div class="header-puzzle">
+      <span class="chip">#4521</span>
+      <span class="chip rating">1850</span>
+      <span class="chip theme">mate-in-3</span>
+      <span class="chip theme">fork</span>
+    </div>
+
+    <div class="header-nav">
+      <a class="nav-link" href="#">Library</a>
+      <a class="nav-link" href="#">History</a>
+      <a class="nav-link" href="#">Stats</a>
+      <div class="avatar">A</div>
+    </div>
+  </header>
+
+  <!-- BODY -->
+  <div class="panels">
+
+    <!-- LEFT: board -->
+    <section class="panel-board">
+
+      <div class="turn-plate">
+        <div class="turn-pip"></div>
+        <div>
+          <div class="turn-text">Black to move</div>
+        </div>
+        <div class="turn-sub">find mate · 3 moves</div>
+      </div>
+
+      <div class="board-mat">
+        <div class="board" id="board"></div>
+      </div>
+
+      <div class="meta-strip">
+        <span class="lbl">FEN</span>
+        <span class="val">r2qkb1r/pp2pppp/2p2n2/8/2BPP1b1/2N5/PPP2PPP/R1BQK2R b KQkq - 0 8</span>
+        <button class="ico" title="copy fen">⧉</button>
+        <button class="ico" title="flip board">⇅</button>
+        <button class="ico" title="puzzle info">i</button>
+      </div>
+    </section>
+
+    <!-- RIGHT: analysis -->
+    <section class="panel-analysis">
+
+      <div class="an-header">
+        <div class="an-title-row">
+          <h2 class="an-title">Move tree</h2>
+          <div class="an-stats">
+            <span><span class="num">8</span> nodes</span>
+            <span class="sep">·</span>
+            <span>depth <span class="num">4</span></span>
+            <span class="sep">·</span>
+            <span>3 lines</span>
+          </div>
+        </div>
+
+        <div class="breadcrumb">
+          <span class="num">15…</span>
+          <span class="player">Qh5+</span>
+          <span class="sep">›</span>
+          <span class="num">16.</span>
+          <span class="opp">g3</span>
+          <span class="player">Qxf3</span>
+          <span class="sep">›</span>
+          <span class="num">17.</span>
+          <span class="opp">Rxf3</span>
+          <span class="player">Re1#</span>
+          <span class="here">▸ cursor</span>
+        </div>
+      </div>
+
+      <div class="tree-wrap">
+        <div class="move-tree" id="tree"></div>
+      </div>
+
+      <div class="an-footer">
+        <div class="rec-status">
+          <div class="rec-left">
+            <span class="pulse"></span>
+            <span class="rec-text">
+              recording from <span class="src">e1</span><span class="arrow">→</span><span class="hint">click destination square</span>
+            </span>
+          </div>
+          <div class="legend">
+            <span class="swatch"><span class="dot you"></span>you</span>
+            <span class="swatch"><span class="dot them"></span>them</span>
+            <span class="swatch"><span class="dot cur"></span>cursor</span>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn"><span>Undo</span><span class="kbd">⌫</span></button>
+          <button class="btn"><span>Reset</span></button>
+          <button class="btn"><span>Hint</span></button>
+          <button class="btn-primary">
+            <span>Submit solution</span>
+            <span class="kbd">↵</span>
+          </button>
+        </div>
+
+        <div class="kb-hints" style="justify-content:flex-start">
+          <span class="k">←</span><span class="k">→</span>
+          <span class="lbl">walk depth</span>
+          <span class="k" style="margin-left:14px">↑</span><span class="k">↓</span>
+          <span class="lbl">switch sibling</span>
+          <span class="k" style="margin-left:14px">click</span>
+          <span class="lbl">jump to any move</span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+// --- Board renderer ---
+const FEN = 'r2qkb1r/pp2pppp/2p2n2/8/2BPP1b1/2N5/PPP2PPP/R1BQK2R b KQkq - 0 8';
+const PIECE_GLYPH = {
+  K:'♔', Q:'♕', R:'♖', B:'♗', N:'♘', P:'♙',
+  k:'♚', q:'♛', r:'♜', b:'♝', n:'♞', p:'♟',
+};
+const FILES = ['a','b','c','d','e','f','g','h'];
+
+function parseFenBoard(fen){
+  const rows = fen.split(' ')[0].split('/');
+  const grid = [];
+  for(const row of rows){
+    const r = [];
+    for(const ch of row){
+      if(/[1-8]/.test(ch)) for(let i=0;i<+ch;i++) r.push(null);
+      else r.push(ch);
+    }
+    grid.push(r);
+  }
+  return grid;
+}
+
+// cburnett piece SVGs from Lichess
+const PIECE_URL = (p) => {
+  const color = p === p.toUpperCase() ? 'w' : 'b';
+  const role = p.toUpperCase();
+  return `https://lichess1.org/assets/piece/cburnett/${color}${role}.svg`;
+};
+
+function renderBoard(){
+  const board = document.getElementById('board');
+  const grid = parseFenBoard(FEN);
+  for(let r=0;r<8;r++){
+    for(let f=0;f<8;f++){
+      const sq = document.createElement('div');
+      const isLight = (r+f) % 2 === 0;
+      sq.className = 'sq ' + (isLight?'light':'dark');
+      const fileLetter = FILES[f];
+      const rankNum = 8 - r;
+      sq.dataset.square = fileLetter + rankNum;
+
+      const p = grid[r][f];
+      if(p){
+        const piece = document.createElement('div');
+        piece.className = 'piece';
+        piece.style.backgroundImage = `url('${PIECE_URL(p)}')`;
+        sq.appendChild(piece);
+      }
+
+      // Lichess-style coords: file letters along bottom rank, rank numbers along a-file
+      if(r === 7){
+        const c = document.createElement('span'); c.className='coord f';
+        c.textContent = fileLetter; sq.appendChild(c);
+      }
+      if(f === 0){
+        const c = document.createElement('span'); c.className='coord r';
+        c.textContent = rankNum; sq.appendChild(c);
+      }
+      board.appendChild(sq);
+    }
+  }
+  const src = board.querySelector('[data-square="e1"]');
+  if(src) src.classList.add('selected');
+}
+renderBoard();
+
+// --- Move tree (spec sample, black-to-move root) ---
+const LINES = [
+  { active:true, segs:[
+    { k:'number', t:'15... ' },
+    { k:'player', t:'Qh5+' },
+  ]},
+  { active:true, segs:[
+    { k:'connector', t:'      ├─ ' },
+    { k:'number', t:'16. ' },
+    { k:'opp', t:'g3' },
+    { k:'space', t:' ' },
+    { k:'player', t:'Qxf3' },
+  ]},
+  { active:true, cursor:true, segs:[
+    { k:'connector', t:'      │         ├─ ' },
+    { k:'number', t:'17. ' },
+    { k:'opp', t:'Rxf3' },
+    { k:'space', t:' ' },
+    { k:'player', t:'Re1#', cursor:true },
+    { k:'note', t:'forced — only square' },
+  ]},
+  { active:false, segs:[
+    { k:'connector', t:'      │         └─ ' },
+    { k:'number', t:'17. ' },
+    { k:'opp', t:'Kh2' },
+    { k:'space', t:' ' },
+    { k:'player', t:'Qxf2#' },
+  ]},
+  { active:false, segs:[
+    { k:'connector', t:'      └─ ' },
+    { k:'number', t:'16. ' },
+    { k:'opp', t:'Kh1' },
+    { k:'space', t:' ' },
+    { k:'player', t:'Qxf3' },
+    { k:'space', t:' ' },
+    { k:'number', t:'17. ' },
+    { k:'opp', t:'Ke2' },
+    { k:'space', t:' ' },
+    { k:'player', t:'Re1#' },
+  ]},
+  { active:false, segs:[
+    { k:'connector', t:'      └─ ' },
+    { k:'stub', t:'+ try another 16th move' },
+  ]},
+];
+
+function renderTree(){
+  const tree = document.getElementById('tree');
+  for(const line of LINES){
+    const el = document.createElement('div');
+    el.className = 'tree-line'
+      + (line.active ? ' is-active-path' : '')
+      + (line.cursor ? ' cursor-line' : '');
+    for(const s of line.segs){
+      let span;
+      if(s.k === 'connector'){
+        span = document.createElement('span'); span.className='seg-connector'; span.textContent=s.t;
+      } else if(s.k === 'number'){
+        span = document.createElement('span'); span.className='seg-number'; span.textContent=s.t;
+      } else if(s.k === 'space'){
+        span = document.createElement('span'); span.textContent=s.t;
+      } else if(s.k === 'note'){
+        span = document.createElement('span'); span.className='line-note'; span.textContent='— '+s.t;
+      } else if(s.k === 'stub'){
+        span = document.createElement('span'); span.className='branch-stub'; span.textContent=s.t;
+      } else {
+        span = document.createElement('span');
+        span.className = 'move-token ' + s.k + (s.cursor?' cursor':'');
+        span.setAttribute('role','button'); span.tabIndex = 0;
+        span.textContent = s.t;
+      }
+      el.appendChild(span);
+    }
+    tree.appendChild(el);
+  }
+}
+renderTree();
+</script>
+</body>
+</html>

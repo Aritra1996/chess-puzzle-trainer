@@ -11,7 +11,8 @@ export default defineConfig({
     exclude: ['e2e/**', 'node_modules/**'],
     alias: {
       '@/components': path.resolve(__dirname, './src/components'),
-      '@/shared': path.resolve(__dirname, '../shared'),
+      '@/shared':     path.resolve(__dirname, '../shared'),
+      '@/lib':        path.resolve(__dirname, './src/lib'),
     },
   },
 })

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render } from '@testing-library/react'
+import { render, fireEvent } from '@testing-library/react'
 import React from 'react'
 
 // Mock Chessground before importing the component
@@ -86,5 +86,79 @@ describe('PuzzleBoard', () => {
     expect(mockChessground).toHaveBeenCalledTimes(2)
     const secondCall = mockChessground.mock.calls[1][1]
     expect(secondCall.fen).toBe(newFen)
+  })
+})
+
+describe('PuzzleBoard — click overlay', () => {
+  it('does not render the overlay when onMove is not provided', () => {
+    const { container } = render(<PuzzleBoard fen={SAMPLE_FEN} />)
+    expect(container.querySelector('[data-testid="click-overlay"]')).toBeNull()
+  })
+
+  it('renders the overlay when onMove prop is provided', () => {
+    const { container } = render(<PuzzleBoard fen={SAMPLE_FEN} onMove={() => {}} />)
+    expect(container.querySelector('[data-testid="click-overlay"]')).not.toBeNull()
+  })
+
+  it('still sets viewOnly: true in Chessground config when onMove is provided', () => {
+    render(<PuzzleBoard fen={SAMPLE_FEN} onMove={() => {}} />)
+    const config = mockChessground.mock.calls[0][1]
+    expect(config.viewOnly).toBe(true)
+  })
+
+  it('sets data-pending on the overlay after the first click', () => {
+    const { container } = render(<PuzzleBoard fen={SAMPLE_FEN} onMove={() => {}} />)
+    const overlay = container.querySelector('[data-testid="click-overlay"]')!
+    fireEvent.click(overlay, { clientX: 30, clientY: 30, bubbles: true })
+    expect(overlay).toHaveAttribute('data-pending')
+  })
+
+  it('calls onMove with a UCI string after two different square clicks', () => {
+    const onMove = vi.fn()
+    const { container } = render(<PuzzleBoard fen={SAMPLE_FEN} onMove={onMove} />)
+    const overlay = container.querySelector('[data-testid="click-overlay"]')!
+    fireEvent.click(overlay, { clientX: 30, clientY: 30, bubbles: true })
+    fireEvent.click(overlay, { clientX: 90, clientY: 90, bubbles: true })
+    expect(onMove).toHaveBeenCalledTimes(1)
+    expect(onMove.mock.calls[0][0]).toMatch(/^[a-h][1-8][a-h][1-8]$/)
+  })
+
+  it('does not call onMove when the same square is clicked twice', () => {
+    const onMove = vi.fn()
+    const { container } = render(<PuzzleBoard fen={SAMPLE_FEN} onMove={onMove} />)
+    const overlay = container.querySelector('[data-testid="click-overlay"]')!
+    fireEvent.click(overlay, { clientX: 30, clientY: 30, bubbles: true })
+    fireEvent.click(overlay, { clientX: 30, clientY: 30, bubbles: true })
+    expect(onMove).not.toHaveBeenCalled()
+  })
+
+  it('shows .sq-highlight after the first click', () => {
+    const { container } = render(
+      <PuzzleBoard fen={SAMPLE_FEN} orientation="white" onMove={vi.fn()} />
+    )
+    const overlay = container.querySelector('[data-testid="click-overlay"]')!
+    fireEvent.click(overlay, { clientX: 30, clientY: 30, bubbles: true })
+    expect(container.querySelector('.sq-highlight')).not.toBeNull()
+  })
+
+  it('removes .sq-highlight after completing a two-square move', () => {
+    const { container } = render(
+      <PuzzleBoard fen={SAMPLE_FEN} orientation="white" onMove={vi.fn()} />
+    )
+    const overlay = container.querySelector('[data-testid="click-overlay"]')!
+    fireEvent.click(overlay, { clientX: 30, clientY: 30, bubbles: true })
+    fireEvent.click(overlay, { clientX: 90, clientY: 90, bubbles: true })
+    expect(container.querySelector('.sq-highlight')).toBeNull()
+  })
+
+  it('clears .sq-highlight when the orientation prop changes', () => {
+    const { container, rerender } = render(
+      <PuzzleBoard fen={SAMPLE_FEN} orientation="white" onMove={vi.fn()} />
+    )
+    const overlay = container.querySelector('[data-testid="click-overlay"]')!
+    fireEvent.click(overlay, { clientX: 30, clientY: 30, bubbles: true })
+    expect(container.querySelector('.sq-highlight')).not.toBeNull()
+    rerender(<PuzzleBoard fen={SAMPLE_FEN} orientation="black" onMove={vi.fn()} />)
+    expect(container.querySelector('.sq-highlight')).toBeNull()
   })
 })

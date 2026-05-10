@@ -1,24 +1,28 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Fira_Code } from "next/font/google";
+import { Fraunces, JetBrains_Mono, Inter } from "next/font/google";
 import "./globals.css";
 
-const cormorant = Cormorant_Garamond({
-  variable: "--font-cormorant",
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  style: ["normal", "italic"],
+  axes: ["opsz"],
   display: "swap",
 });
 
-const firaCode = Fira_Code({
-  variable: "--font-fira",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains",
   subsets: ["latin"],
-  weight: ["300", "400", "500"],
+  display: "swap",
+});
+
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Chess Puzzle Trainer",
+  title: "Visualis — Chess Puzzle Trainer",
   description: "Mental visualization trainer for chess puzzles",
 };
 
@@ -28,7 +32,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${cormorant.variable} ${firaCode.variable}`}>
+    <html lang="en" className={`${fraunces.variable} ${jetbrainsMono.variable} ${inter.variable}`}>
       <body className="antialiased">{children}</body>
     </html>
   );
