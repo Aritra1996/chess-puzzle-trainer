@@ -3,8 +3,9 @@ import { render, fireEvent } from '@testing-library/react'
 import React from 'react'
 
 // Mock Chessground before importing the component
+const mockSet     = vi.fn()
 const mockDestroy = vi.fn()
-const mockChessground = vi.fn(() => ({ destroy: mockDestroy }))
+const mockChessground = vi.fn(() => ({ destroy: mockDestroy, set: mockSet }))
 
 vi.mock('@lichess-org/chessground', () => ({
   Chessground: mockChessground,
@@ -18,6 +19,7 @@ const SAMPLE_FEN = 'r2qkb1r/pp2pppp/2p2n2/8/2BPP1b1/2N5/PPP2PPP/R1BQK2R b KQkq -
 beforeEach(() => {
   mockChessground.mockClear()
   mockDestroy.mockClear()
+  mockSet.mockClear()
 })
 
 describe('PuzzleBoard', () => {
@@ -132,33 +134,86 @@ describe('PuzzleBoard — click overlay', () => {
     expect(onMove).not.toHaveBeenCalled()
   })
 
-  it('shows .sq-highlight after the first click', () => {
+  it('data-pending attribute is set after the first click', () => {
     const { container } = render(
       <PuzzleBoard fen={SAMPLE_FEN} orientation="white" onMove={vi.fn()} />
     )
     const overlay = container.querySelector('[data-testid="click-overlay"]')!
     fireEvent.click(overlay, { clientX: 30, clientY: 30, bubbles: true })
-    expect(container.querySelector('.sq-highlight')).not.toBeNull()
+    expect(overlay).toHaveAttribute('data-pending')
   })
 
-  it('removes .sq-highlight after completing a two-square move', () => {
-    const { container } = render(
-      <PuzzleBoard fen={SAMPLE_FEN} orientation="white" onMove={vi.fn()} />
-    )
-    const overlay = container.querySelector('[data-testid="click-overlay"]')!
-    fireEvent.click(overlay, { clientX: 30, clientY: 30, bubbles: true })
-    fireEvent.click(overlay, { clientX: 90, clientY: 90, bubbles: true })
-    expect(container.querySelector('.sq-highlight')).toBeNull()
-  })
-
-  it('clears .sq-highlight when the orientation prop changes', () => {
+  it('preserves data-pending when the orientation prop changes', () => {
     const { container, rerender } = render(
       <PuzzleBoard fen={SAMPLE_FEN} orientation="white" onMove={vi.fn()} />
     )
     const overlay = container.querySelector('[data-testid="click-overlay"]')!
     fireEvent.click(overlay, { clientX: 30, clientY: 30, bubbles: true })
-    expect(container.querySelector('.sq-highlight')).not.toBeNull()
     rerender(<PuzzleBoard fen={SAMPLE_FEN} orientation="black" onMove={vi.fn()} />)
+    expect(overlay).toHaveAttribute('data-pending')
+  })
+})
+
+describe('PuzzleBoard — Chessground-driven highlight', () => {
+  it('calls cg.set with selected square after the first click', () => {
+    const { container } = render(
+      <PuzzleBoard fen={SAMPLE_FEN} orientation="white" onMove={vi.fn()} />
+    )
+    mockSet.mockClear()
+    fireEvent.click(
+      container.querySelector('[data-testid="click-overlay"]')!,
+      { clientX: 30, clientY: 30, bubbles: true }
+    )
+    expect(mockSet).toHaveBeenCalledWith(
+      expect.objectContaining({ selected: expect.stringMatching(/^[a-h][1-8]$/) })
+    )
+  })
+
+  it('calls cg.set with selected: undefined after a two-square move', () => {
+    const { container } = render(
+      <PuzzleBoard fen={SAMPLE_FEN} orientation="white" onMove={vi.fn()} />
+    )
+    const overlay = container.querySelector('[data-testid="click-overlay"]')!
+    fireEvent.click(overlay, { clientX: 30, clientY: 30, bubbles: true })
+    mockSet.mockClear()
+    fireEvent.click(overlay, { clientX: 90, clientY: 90, bubbles: true })
+    expect(mockSet).toHaveBeenCalledWith(
+      expect.objectContaining({ selected: undefined })
+    )
+  })
+
+  it('calls cg.set with the pending square when orientation prop changes', () => {
+    const { container, rerender } = render(
+      <PuzzleBoard fen={SAMPLE_FEN} orientation="white" onMove={vi.fn()} />
+    )
+    fireEvent.click(
+      container.querySelector('[data-testid="click-overlay"]')!,
+      { clientX: 30, clientY: 30, bubbles: true }
+    )
+    mockSet.mockClear()
+    rerender(<PuzzleBoard fen={SAMPLE_FEN} orientation="black" onMove={vi.fn()} />)
+    expect(mockSet).toHaveBeenCalledWith(
+      expect.objectContaining({ selected: expect.stringMatching(/^[a-h][1-8]$/) })
+    )
+  })
+
+  it('does not call cg.set when orientation changes and no square is pending', () => {
+    const { rerender } = render(
+      <PuzzleBoard fen={SAMPLE_FEN} orientation="white" onMove={vi.fn()} />
+    )
+    mockSet.mockClear()
+    rerender(<PuzzleBoard fen={SAMPLE_FEN} orientation="black" onMove={vi.fn()} />)
+    expect(mockSet).not.toHaveBeenCalled()
+  })
+
+  it('does not render a .sq-highlight element (highlight is Chessground-driven)', () => {
+    const { container } = render(
+      <PuzzleBoard fen={SAMPLE_FEN} orientation="white" onMove={vi.fn()} />
+    )
+    fireEvent.click(
+      container.querySelector('[data-testid="click-overlay"]')!,
+      { clientX: 30, clientY: 30, bubbles: true }
+    )
     expect(container.querySelector('.sq-highlight')).toBeNull()
   })
 })

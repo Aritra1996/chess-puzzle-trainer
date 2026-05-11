@@ -1,9 +1,9 @@
 'use client';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { CSSProperties } from 'react';
 import { Chessground } from '@lichess-org/chessground';
 import type { Api } from '@lichess-org/chessground/api';
 import type { Config } from '@lichess-org/chessground/config';
+import type { Key } from '@lichess-org/chessground/dist/types';
 
 interface Props {
   fen: string;
@@ -30,18 +30,12 @@ function pixelToSquare(
   return String.fromCharCode(97 + file) + (rank + 1);
 }
 
-function squareStyle(sq: string, orientation: 'white' | 'black'): CSSProperties {
-  const fileIdx = sq.charCodeAt(0) - 97;
-  const rankIdx = parseInt(sq[1], 10) - 1;
-  const file = orientation === 'black' ? 7 - fileIdx : fileIdx;
-  const rank = orientation === 'black' ? 7 - rankIdx : rankIdx;
-  return { left: `${file * 12.5}%`, bottom: `${rank * 12.5}%` };
-}
 
 export default function PuzzleBoard({ fen, orientation = 'white', onMove }: Props) {
   const boardRef    = useRef<HTMLDivElement>(null);
   const cgRef       = useRef<Api | null>(null);
   const overlayRef  = useRef<HTMLDivElement>(null);
+  const pendingRef  = useRef<string | null>(null);
   const [pendingSquare, setPendingSquare] = useState<string | null>(null);
 
   useEffect(() => {
@@ -58,19 +52,29 @@ export default function PuzzleBoard({ fen, orientation = 'white', onMove }: Prop
     return () => { cgRef.current?.destroy(); };
   }, [fen, orientation]);
 
-  useEffect(() => { setPendingSquare(null); }, [orientation]);
+  useEffect(() => {
+    if (pendingRef.current !== null) {
+      cgRef.current?.set({ selected: pendingRef.current as Key });
+    }
+  }, [orientation]);
 
   const handleOverlayClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!onMove) return;
-    const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+    if (!onMove || !cgRef.current) return;
+    const rect   = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
     const square = pixelToSquare(e.clientX, e.clientY, rect, orientation);
 
     if (pendingSquare === null) {
+      cgRef.current.set({ selected: square as Key });
+      pendingRef.current = square;
       setPendingSquare(square);
     } else if (pendingSquare === square) {
+      cgRef.current.set({ selected: undefined });
+      pendingRef.current = null;
       setPendingSquare(null);
     } else {
+      cgRef.current.set({ selected: undefined });
       onMove(pendingSquare + square);
+      pendingRef.current = null;
       setPendingSquare(null);
     }
   }, [onMove, orientation, pendingSquare]);
@@ -85,11 +89,7 @@ export default function PuzzleBoard({ fen, orientation = 'white', onMove }: Prop
           className="click-overlay"
           data-pending={pendingSquare ?? undefined}
           onClick={handleOverlayClick}
-        >
-          {pendingSquare && (
-            <div className="sq-highlight" style={squareStyle(pendingSquare, orientation)} />
-          )}
-        </div>
+        />
       )}
     </div>
   );

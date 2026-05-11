@@ -3,8 +3,8 @@ export type PlayerColor = 'player' | 'opponent';
 export type Segment =
   | { kind: 'connector'; text: string }
   | { kind: 'number';    text: string }
-  | { kind: 'player';    text: string; active?: boolean }
-  | { kind: 'opponent';  text: string; active?: boolean }
+  | { kind: 'player';    text: string; nodeId?: string; active?: boolean }
+  | { kind: 'opponent';  text: string; nodeId?: string; active?: boolean }
   | { kind: 'space';     text: string };
 
 export type Line = { segments: Segment[]; isActivePath: boolean };
@@ -113,13 +113,75 @@ function ancestorIds(root: MoveNode, targetId: string): Set<string> {
   return new Set(collect(root, []) ?? []);
 }
 
+function ancestorPath(root: MoveNode, targetId: string): MoveNode[] {
+  function collect(n: MoveNode, path: MoveNode[]): MoveNode[] | null {
+    const next = [...path, n];
+    if (n.id === targetId) return next;
+    for (const c of n.children) {
+      const found = collect(c, next);
+      if (found) return found;
+    }
+    return null;
+  }
+  return collect(root, []) ?? [];
+}
+
+export function navigateTo(tree: MoveTree, nodeId: string): MoveTree {
+  if (!nodeById(tree.root, nodeId)) return tree;
+  return { ...tree, currentNodeId: nodeId };
+}
+
+export function navigateParent(tree: MoveTree): MoveTree {
+  const current = nodeById(tree.root, tree.currentNodeId);
+  if (!current || current.parentId === null) return tree;
+  return { ...tree, currentNodeId: current.parentId };
+}
+
+export function navigateFirstChild(tree: MoveTree): MoveTree {
+  const current = nodeById(tree.root, tree.currentNodeId);
+  if (!current || current.children.length === 0) return tree;
+  return { ...tree, currentNodeId: current.children[0].id };
+}
+
+export function navigateSibling(tree: MoveTree, dir: 'prev' | 'next'): MoveTree {
+  const current = nodeById(tree.root, tree.currentNodeId);
+  if (!current || current.parentId === null) return tree;
+  const parent = nodeById(tree.root, current.parentId);
+  if (!parent) return tree;
+  const idx    = parent.children.findIndex(c => c.id === tree.currentNodeId);
+  const newIdx = dir === 'next' ? idx + 1 : idx - 1;
+  if (newIdx < 0 || newIdx >= parent.children.length) return tree;
+  return { ...tree, currentNodeId: parent.children[newIdx].id };
+}
+
+export function getDepth(tree: MoveTree): number {
+  return ancestorPath(tree.root, tree.currentNodeId).filter(n => n.san !== '').length;
+}
+
+export function getBreadcrumb(tree: MoveTree): string[] {
+  return ancestorPath(tree.root, tree.currentNodeId)
+    .filter(n => n.san !== '')
+    .map(n => n.san);
+}
+
+export function removeNode(tree: MoveTree, nodeId: string): MoveTree {
+  const target = nodeById(tree.root, nodeId);
+  if (!target || target.parentId === null) return tree;
+
+  function strip(n: MoveNode): MoveNode {
+    return { ...n, children: n.children.filter(c => c.id !== nodeId).map(strip) };
+  }
+
+  return { ...tree, root: strip(tree.root), currentNodeId: target.parentId };
+}
+
 export function buildLines(tree: MoveTree): Line[] {
   if (tree.root.children.length === 0) return [];
 
   const activePath = ancestorIds(tree.root, tree.currentNodeId);
   const lines: Line[] = [];
 
-  function renderNode(node: MoveNode, depthD: number, lineSegs: Segment[], isFirst: boolean): void {
+  function renderNode(node: MoveNode, depthD: number, lineSegs: Segment[], isFirst: boolean, chainOnActivePath: boolean): void {
     // Emit the move token for this node (the root/sentinel has no san)
     if (node.san === '') return;
 
@@ -134,14 +196,14 @@ export function buildLines(tree: MoveTree): Line[] {
     }
 
     const tok: Segment = node.color === 'player'
-      ? { kind: 'player',   text: node.san, ...(isActive ? { active: true } : {}) }
-      : { kind: 'opponent', text: node.san, ...(isActive ? { active: true } : {}) };
+      ? { kind: 'player',   text: node.san, nodeId: node.id, ...(isActive ? { active: true } : {}) }
+      : { kind: 'opponent', text: node.san, nodeId: node.id, ...(isActive ? { active: true } : {}) };
     segs.push(tok);
 
     const newDepthD = depthD + node.san.length;
 
     if (node.children.length === 0) {
-      lines.push({ segments: segs, isActivePath: isOnActivePath });
+      lines.push({ segments: segs, isActivePath: chainOnActivePath || isOnActivePath });
     } else if (node.children.length === 1) {
       // Inline: append space (+ optional number) then recurse
       const child = node.children[0];
@@ -155,20 +217,19 @@ export function buildLines(tree: MoveTree): Line[] {
       } else if (node.san === '' || node.children[0].isBlackMove !== node.isBlackMove) {
         // same pair, just space
       }
-      renderNode(child, newDepthD + 1, nextSegs, false);
+      renderNode(child, newDepthD + 1, nextSegs, false, chainOnActivePath || isOnActivePath);
     } else {
       // Branch: flush current line, then one sub-line per child
-      lines.push({ segments: segs, isActivePath: isOnActivePath });
+      lines.push({ segments: segs, isActivePath: chainOnActivePath || isOnActivePath });
       node.children.forEach((child, i) => {
         const isLast = i === node.children.length - 1;
         const connector = ' '.repeat(depthD) + (isLast ? '└─ ' : '├─ ');
-        const childIsOnActivePath = activePath.has(child.id);
         const numSeg: Segment = { kind: 'number', text: child.isBlackMove ? `${child.moveNumber}... ` : `${child.moveNumber}. ` };
         const branchSegs: Segment[] = [
           { kind: 'connector', text: connector },
           numSeg,
         ];
-        renderNode(child, connector.length, branchSegs, true);
+        renderNode(child, connector.length, branchSegs, true, false);
       });
     }
   }
@@ -178,10 +239,9 @@ export function buildLines(tree: MoveTree): Line[] {
 
   if (firstChildren.length === 1) {
     const child = firstChildren[0];
-    const isOnActivePath = activePath.has(child.id);
     const numText = child.isBlackMove ? `${child.moveNumber}... ` : `${child.moveNumber}. `;
     const initSegs: Segment[] = [{ kind: 'number', text: numText }];
-    renderNode(child, numText.length, initSegs, true);
+    renderNode(child, numText.length, initSegs, true, false);
   } else {
     firstChildren.forEach((child, i) => {
       const isLast = i === firstChildren.length - 1;
@@ -191,7 +251,7 @@ export function buildLines(tree: MoveTree): Line[] {
         { kind: 'connector', text: connector },
         { kind: 'number', text: numText },
       ];
-      renderNode(child, connector.length, branchSegs, true);
+      renderNode(child, connector.length, branchSegs, true, false);
     });
   }
 

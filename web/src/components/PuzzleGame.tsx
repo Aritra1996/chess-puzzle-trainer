@@ -1,7 +1,11 @@
 'use client';
-import { useReducer, useState } from 'react';
+import { useReducer, useState, useEffect, Fragment } from 'react';
 import { parseFen } from '@/shared/fen';
-import { createTree, addNode, buildLines, getCurrentFen } from '@/shared/moveTree';
+import {
+  createTree, addNode, buildLines, getCurrentFen,
+  navigateTo, navigateParent, navigateFirstChild, navigateSibling,
+  getDepth, getBreadcrumb, removeNode,
+} from '@/shared/moveTree';
 import type { MoveTree as MoveTreeState } from '@/shared/moveTree';
 import { computeMove } from '@/lib/chess';
 import PuzzleBoard from './PuzzleBoard';
@@ -12,26 +16,45 @@ interface Props {
   orientation?: 'white' | 'black';
 }
 
-type State  = { tree: MoveTreeState };
-type Action = { type: 'RECORD_MOVE'; uci: string };
+type State  = { tree: MoveTreeState; undoStack: string[] };
+type Action =
+  | { type: 'RECORD_MOVE';         uci: string }
+  | { type: 'NAVIGATE_TO';         nodeId: string }
+  | { type: 'NAVIGATE_PARENT' }
+  | { type: 'NAVIGATE_FIRST_CHILD' }
+  | { type: 'NAVIGATE_SIBLING';    dir: 'prev' | 'next' }
+  | { type: 'UNDO_LAST' }
+  | { type: 'RESET';               initialFen: string };
 
 function reducer(state: State, action: Action): State {
   if (action.type === 'RECORD_MOVE') {
     const fen                      = getCurrentFen(state.tree);
     const { san, nextFen, illegal } = computeMove(fen, action.uci);
     const { turn, fullMoveNumber } = parseFen(fen);
-    return {
-      tree: addNode(state.tree, {
-        uci: action.uci,
-        san,
-        fen: nextFen,
-        illegal,
-        color: turn === state.tree.playerColor ? 'player' : 'opponent',
-        moveNumber: fullMoveNumber,
-        isBlackMove: turn === 'black',
-      }),
-    };
+    const newTree = addNode(state.tree, {
+      uci: action.uci,
+      san,
+      fen: nextFen,
+      illegal,
+      color: turn === state.tree.playerColor ? 'player' : 'opponent',
+      moveNumber: fullMoveNumber,
+      isBlackMove: turn === 'black',
+    });
+    return { tree: newTree, undoStack: [...state.undoStack, newTree.currentNodeId] };
   }
+  if (action.type === 'UNDO_LAST') {
+    if (state.undoStack.length === 0) return state;
+    const nodeId  = state.undoStack[state.undoStack.length - 1];
+    const newTree = removeNode(state.tree, nodeId);
+    return { tree: newTree, undoStack: state.undoStack.slice(0, -1) };
+  }
+  if (action.type === 'RESET') {
+    return { tree: createTree(action.initialFen, state.tree.playerColor), undoStack: [] };
+  }
+  if (action.type === 'NAVIGATE_TO')          return { ...state, tree: navigateTo(state.tree, action.nodeId) };
+  if (action.type === 'NAVIGATE_PARENT')      return { ...state, tree: navigateParent(state.tree) };
+  if (action.type === 'NAVIGATE_FIRST_CHILD') return { ...state, tree: navigateFirstChild(state.tree) };
+  if (action.type === 'NAVIGATE_SIBLING')     return { ...state, tree: navigateSibling(state.tree, action.dir) };
   return state;
 }
 
@@ -45,15 +68,29 @@ function totalNodes(tree: MoveTreeState): number {
 
 export default function PuzzleGame({ fen, orientation: orientationProp }: Props) {
   const playerColor = parseFen(fen).turn;
-  const [state, dispatch] = useReducer(reducer, { tree: createTree(fen, playerColor) });
+  const [state, dispatch] = useReducer(reducer, { tree: createTree(fen, playerColor), undoStack: [] });
   const [boardOrientation, setBoardOrientation] = useState<'white' | 'black'>(
     orientationProp ?? (parseFen(fen).turn as 'white' | 'black')
   );
 
-  const lines     = buildLines(state.tree);
-  const nodeCount = totalNodes(state.tree);
-  const { turn }  = parseFen(fen);
+  const lines      = buildLines(state.tree);
+  const nodeCount  = totalNodes(state.tree);
+  const depth      = getDepth(state.tree);
+  const breadcrumb = getBreadcrumb(state.tree);
+  const { turn }   = parseFen(fen);
   const sideToMove = turn === 'white' ? 'White' : 'Black';
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'ArrowLeft')  { e.preventDefault(); dispatch({ type: 'NAVIGATE_PARENT' }); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); dispatch({ type: 'NAVIGATE_FIRST_CHILD' }); }
+      if (e.key === 'ArrowUp')    { e.preventDefault(); dispatch({ type: 'NAVIGATE_SIBLING', dir: 'prev' }); }
+      if (e.key === 'ArrowDown')  { e.preventDefault(); dispatch({ type: 'NAVIGATE_SIBLING', dir: 'next' }); }
+      if (e.key === 'Backspace')  { e.preventDefault(); dispatch({ type: 'UNDO_LAST' }); }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   function handleMove(uci: string) {
     dispatch({ type: 'RECORD_MOVE', uci });
@@ -89,16 +126,22 @@ export default function PuzzleGame({ fen, orientation: orientationProp }: Props)
             <div className="an-stats">
               <span><span className="num">{nodeCount}</span> nodes</span>
               <span className="sep">·</span>
-              <span>depth <span className="num">0</span></span>
+              <span>depth <span className="num">{depth}</span></span>
             </div>
           </div>
           <div className="breadcrumb">
             <span className="here">▸ start</span>
+            {breadcrumb.map((san, i) => (
+              <Fragment key={i}>
+                <span className="sep"> → </span>
+                <span className="crumb">{san}</span>
+              </Fragment>
+            ))}
           </div>
         </div>
 
         <div className="tree-wrap">
-          <MoveTree lines={lines} />
+          <MoveTree lines={lines} onTokenClick={(id) => dispatch({ type: 'NAVIGATE_TO', nodeId: id })} />
         </div>
 
         <div className="an-footer">
@@ -117,8 +160,8 @@ export default function PuzzleGame({ fen, orientation: orientationProp }: Props)
           </div>
 
           <div className="actions">
-            <button className="btn">Undo <span className="kbd">⌫</span></button>
-            <button className="btn">Reset</button>
+            <button className="btn" onClick={() => dispatch({ type: 'UNDO_LAST' })}>Undo <span className="kbd">⌫</span></button>
+            <button className="btn" onClick={() => dispatch({ type: 'RESET', initialFen: fen })}>Reset</button>
             <button className="btn">Hint</button>
             <button className="btn-primary">Submit solution <span className="kbd">↵</span></button>
           </div>

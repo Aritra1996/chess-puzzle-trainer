@@ -1,7 +1,12 @@
 'use client';
 import type { Line } from '@/shared/moveTree';
 
-export default function MoveTree({ lines }: { lines: Line[] }) {
+interface Props {
+  lines: Line[];
+  onTokenClick?: (nodeId: string) => void;
+}
+
+export default function MoveTree({ lines, onTokenClick }: Props) {
   return (
     <div className="move-tree">
       {lines.map((line, lineIdx) => (
@@ -23,6 +28,13 @@ export default function MoveTree({ lines }: { lines: Line[] }) {
                 className={`move-token ${seg.kind}${isActive ? ' active' : ''}`}
                 role="button"
                 tabIndex={0}
+                onClick={() => seg.nodeId && onTokenClick?.(seg.nodeId)}
+                onKeyDown={(e) => {
+                  if ((e.key === 'Enter' || e.key === ' ') && seg.nodeId) {
+                    e.preventDefault();
+                    onTokenClick?.(seg.nodeId);
+                  }
+                }}
               >
                 {seg.text}
               </span>

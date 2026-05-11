@@ -174,8 +174,10 @@ chess-puzzle-trainer/
 - All navigation only moves the cursor — board never changes (still shows puzzle start position)
 
 ### Phase 5 — Tree Editing (Undo / Reset)
-- **Undo button / ⌫ key** : delete the current node (and its entire subtree), navigate cursor to parent
-- **Reset button** : clear the entire tree back to the initial empty state
+- **Undo button / ⌫ key** : remove the most recently *recorded* move from the tree (time-based, not cursor-positional); cursor moves to that node's parent; pressing again removes the next-most-recent move; no-op when nothing recorded
+- **Reset button** : clear the entire tree back to the initial empty state; cursor returns to root
+- Navigation (← → ↑ ↓) does NOT affect what Undo targets — only recording does
+- Undo stack is tracked in React state alongside the MoveTree; `removeNode` in `shared/moveTree.ts` handles the deletion
 - After Undo or Reset, recording resumes from the new `currentNodeId` position
 - Hint button wired: highlight the correct next move token (requires solution loaded — bridges into Phase 6)
 

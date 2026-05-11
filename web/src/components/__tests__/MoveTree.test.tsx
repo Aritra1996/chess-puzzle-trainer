@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import React from 'react'
 import MoveTree from '../MoveTree'
 import type { Line } from '@/shared/moveTree'
@@ -8,7 +9,7 @@ const PLAYER_LINE: Line = {
   isActivePath: true,
   segments: [
     { kind: 'number', text: '1. ' },
-    { kind: 'player', text: 'e4', active: true },
+    { kind: 'player', text: 'e4', nodeId: 'node-1', active: true },
   ],
 }
 
@@ -66,5 +67,20 @@ describe('MoveTree', () => {
     const connector = document.querySelector('.seg-connector')
     expect(connector).not.toBeNull()
     expect(connector!.textContent).toBe('      └─ ')
+  })
+
+  it('calls onTokenClick with the nodeId when a token is clicked', async () => {
+    const onTokenClick = vi.fn()
+    render(<MoveTree lines={[PLAYER_LINE]} onTokenClick={onTokenClick} />)
+    await userEvent.click(document.querySelector('.move-token')!)
+    expect(onTokenClick).toHaveBeenCalledWith('node-1')
+  })
+
+  it('calls onTokenClick when Enter is pressed on a token', async () => {
+    const onTokenClick = vi.fn()
+    render(<MoveTree lines={[PLAYER_LINE]} onTokenClick={onTokenClick} />)
+    document.querySelector<HTMLElement>('.move-token')!.focus()
+    await userEvent.keyboard('{Enter}')
+    expect(onTokenClick).toHaveBeenCalledWith('node-1')
   })
 })

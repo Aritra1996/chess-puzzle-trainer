@@ -1,9 +1,11 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, act } from '@testing-library/react'
+import { render, screen, act, fireEvent } from '@testing-library/react'
 import React from 'react'
 
 let capturedOnMove: ((uci: string) => void) | undefined
 let capturedOrientation: string | undefined
+let capturedOnTokenClick: ((id: string) => void) | undefined
+
 vi.mock('../PuzzleBoard', () => ({
   default: ({ onMove, orientation }: { fen: string; orientation?: string; onMove?: (uci: string) => void }) => {
     capturedOnMove = onMove
@@ -13,9 +15,10 @@ vi.mock('../PuzzleBoard', () => ({
 }))
 
 vi.mock('../MoveTree', () => ({
-  default: ({ lines }: { lines: unknown[] }) => (
-    <div data-testid="move-tree" data-lines={lines.length} />
-  ),
+  default: ({ lines, onTokenClick }: { lines: unknown[]; onTokenClick?: (id: string) => void }) => {
+    capturedOnTokenClick = onTokenClick
+    return <div data-testid="move-tree" data-lines={lines.length} />
+  },
 }))
 
 const { default: PuzzleGame } = await import('../PuzzleGame')
@@ -95,5 +98,75 @@ describe('PuzzleGame', () => {
     expect(capturedOrientation).toBe('black')
     act(() => { screen.getByTitle('flip board').click() })
     expect(capturedOrientation).toBe('white')
+  })
+
+  it('depth counter updates to 1 after recording one move', () => {
+    const { container } = render(<PuzzleGame fen={SAMPLE_FEN} />)
+    act(() => { capturedOnMove?.('f6d5') })
+    expect(container.querySelector('.an-stats')?.textContent).toContain('depth 1')
+  })
+
+  it('breadcrumb shows the recorded move SAN after recording one move', () => {
+    const { container } = render(<PuzzleGame fen={SAMPLE_FEN} />)
+    act(() => { capturedOnMove?.('f6d5') })
+    expect(container.querySelector('.breadcrumb')?.textContent).toContain('Nd5')
+  })
+
+  it('ArrowLeft key moves cursor from depth 2 to depth 1', () => {
+    const { container } = render(<PuzzleGame fen={SAMPLE_FEN} />)
+    act(() => { capturedOnMove?.('f6d5') })  // Nd5 — depth 1
+    act(() => { capturedOnMove?.('a2a3') })  // a3  — depth 2
+    act(() => { fireEvent.keyDown(window, { key: 'ArrowLeft' }) })
+    expect(container.querySelector('.an-stats')?.textContent).toContain('depth 1')
+  })
+
+  it('ArrowRight key moves cursor to child after navigating to parent', () => {
+    const { container } = render(<PuzzleGame fen={SAMPLE_FEN} />)
+    act(() => { capturedOnMove?.('f6d5') })
+    act(() => { fireEvent.keyDown(window, { key: 'ArrowLeft' }) })   // back to root
+    act(() => { fireEvent.keyDown(window, { key: 'ArrowRight' }) })  // forward to Nd5
+    expect(container.querySelector('.an-stats')?.textContent).toContain('depth 1')
+  })
+
+  it('passes onTokenClick to MoveTree', () => {
+    render(<PuzzleGame fen={SAMPLE_FEN} />)
+    expect(typeof capturedOnTokenClick).toBe('function')
+  })
+})
+
+describe('PuzzleGame — Undo / Reset', () => {
+  it('renders the Undo button', () => {
+    render(<PuzzleGame fen={SAMPLE_FEN} />)
+    expect(screen.getByRole('button', { name: /Undo/i })).toBeInTheDocument()
+  })
+
+  it('pressing Undo after one recorded move reduces depth back to 0', () => {
+    const { container } = render(<PuzzleGame fen={SAMPLE_FEN} />)
+    act(() => { capturedOnMove?.('f6d5') })
+    expect(container.querySelector('.an-stats')?.textContent).toContain('depth 1')
+    fireEvent.click(screen.getByRole('button', { name: /Undo/i }))
+    expect(container.querySelector('.an-stats')?.textContent).toContain('depth 0')
+  })
+
+  it('pressing Undo when nothing is recorded is a no-op', () => {
+    const { container } = render(<PuzzleGame fen={SAMPLE_FEN} />)
+    expect(() => fireEvent.click(screen.getByRole('button', { name: /Undo/i }))).not.toThrow()
+    expect(container.querySelector('.an-stats')?.textContent).toContain('depth 0')
+  })
+
+  it('Backspace key triggers Undo (same effect as button)', () => {
+    const { container } = render(<PuzzleGame fen={SAMPLE_FEN} />)
+    act(() => { capturedOnMove?.('f6d5') })
+    expect(container.querySelector('.an-stats')?.textContent).toContain('depth 1')
+    act(() => { fireEvent.keyDown(window, { key: 'Backspace' }) })
+    expect(container.querySelector('.an-stats')?.textContent).toContain('depth 0')
+  })
+
+  it('Reset button clears the tree and depth returns to 0', () => {
+    const { container } = render(<PuzzleGame fen={SAMPLE_FEN} />)
+    act(() => { capturedOnMove?.('f6d5') })
+    expect(container.querySelector('.an-stats')?.textContent).toContain('depth 1')
+    fireEvent.click(screen.getByRole('button', { name: /Reset/i }))
+    expect(container.querySelector('.an-stats')?.textContent).toContain('depth 0')
   })
 })
