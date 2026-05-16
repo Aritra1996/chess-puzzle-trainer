@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "postinstall": "cp node_modules/stockfish/bin/stockfish-18-lite-single.js public/ && cp node_modules/stockfish/bin/stockfish-18-lite-single.wasm public/",
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
@@ -17,7 +18,8 @@
     "chess.js": "^1.4.0",
     "next": "16.2.6",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "stockfish": "^18.0.7"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",

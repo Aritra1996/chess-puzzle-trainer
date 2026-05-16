@@ -125,12 +125,13 @@ chess-puzzle-trainer/
 
 ## Build Phases
 
-### Phase 1 — Static Board
+### Phase 1 — Static Board ✅ COMPLETE
 - Render a chessboard in the browser
 - Place pieces from a FEN string (puzzle position)
 - No interaction yet
+- 45/45 tests green; key fix: `.cg-wrap` needs 100%/100% to make Chessground visible
 
-### Phase 2 — UI Design Polish (frontend-design skill)
+### Phase 2 — UI Design Polish ✅ COMPLETE
 - Run the `frontend-design` skill to redesign the full app layout
 - Two-panel layout: static board left, move graph right — visually distinct and clean
 - Typography: monospace move tree, clear move-number/piece-name contrast
@@ -140,7 +141,7 @@ chess-puzzle-trainer/
 - Submit button and status indicators styled for the chess aesthetic
 - Responsive: desktop first, mobile-aware
 
-### Phase 2.1 — Paper/Ink UI Redesign
+### Phase 2.1 — Paper/Ink UI Redesign ✅ COMPLETE
 - Migrates from dark "Tournament Analysis Room" theme to warm paper/ink aesthetic
 - Source: `designs/Hifi - Standard Split.html` (hi-fi mockup)
 - Fonts: Fraunces (serif display) + JetBrains Mono + Inter
@@ -163,7 +164,7 @@ chess-puzzle-trainer/
 - Board auto-orients to side-to-move; square highlight on first click; flip button; responsive board height
 - See `build_phases/phase3.md` and `build_phases/phase3.1.md` / `phase3.2.md` for full details
 
-### Phase 4 — Tree Navigation
+### Phase 4 — Tree Navigation ✅ COMPLETE
 - **Click any move token** in the graph → move `currentNodeId` cursor to that node
 - **Keyboard ←** : navigate to parent node
 - **Keyboard →** : navigate to first child
@@ -172,21 +173,28 @@ chess-puzzle-trainer/
 - **Depth counter** computes and displays actual depth from root (replaces hardcoded `depth 0`)
 - Recording after navigating to a past node automatically creates a branch from there — no extra code needed, follows naturally from `currentNodeId` driving `addNode`
 - All navigation only moves the cursor — board never changes (still shows puzzle start position)
+- Square highlight uses Chessground `selected` API (not a hand-rolled div); persists correctly across board flips
+- See `build_phases/phase4.1.md` – `phase4.3.md` for full details; 70/70 web + 55/55 shared tests green
 
-### Phase 5 — Tree Editing (Undo / Reset)
+### Phase 5 — Tree Editing (Undo / Reset) ✅ COMPLETE
 - **Undo button / ⌫ key** : remove the most recently *recorded* move from the tree (time-based, not cursor-positional); cursor moves to that node's parent; pressing again removes the next-most-recent move; no-op when nothing recorded
 - **Reset button** : clear the entire tree back to the initial empty state; cursor returns to root
 - Navigation (← → ↑ ↓) does NOT affect what Undo targets — only recording does
-- Undo stack is tracked in React state alongside the MoveTree; `removeNode` in `shared/moveTree.ts` handles the deletion
+- `undoStack: string[]` tracked in React state alongside `MoveTree`; `removeNode` in `shared/moveTree.ts` handles deletion
 - After Undo or Reset, recording resumes from the new `currentNodeId` position
-- Hint button wired: highlight the correct next move token (requires solution loaded — bridges into Phase 6)
+- Hint button present in UI but not yet functional (requires solution loaded — Phase 6)
+- See `build_phases/phase5.md` / `phase5_test.md`; 75/75 web + 55/55 shared tests green
 
 ### Phase 6 — Solution Checking
-- Load a puzzle with a known solution tree
-- Submit button triggers comparison of user's graph against solution
-- Flag: wrong moves (red), missing lines, correct lines (green)
-- User can retry incorrect moves after seeing the flags
-- Hint (from Phase 5) fully operational once solution is loaded
+- Solution passed as a `solution?: string` prop (space-separated UCI moves); hardcoded for now — Phase 7 fetches from PocketBase
+- Submit triggers Stockfish.js (WebAssembly, browser-only, no backend calls) to evaluate each node
+- **Two-mode checking**: forced line (opponent has 1 legal response) → strict UCI match; multi-response position → Stockfish eval for winning advantage
+- Flag each token: correct (green), wrong (red strikethrough), illegal (orange dashed); illegal node children are skipped
+- `chess.js` (already in project) used for legal move counting; `stockfish` npm package added for evaluation
+- Checking is batched at Submit; no live eval while recording
+- Clear on record/undo/reset; re-submit always re-checks fresh
+- Hint button remains a no-op in this phase
+- Sub-phases: 6.1 shared checker logic + tests, 6.2 Stockfish wrapper (`web/src/lib/chessEngine.ts`), 6.3 Submit UI wiring + tests, 6.4 browser smoke test
 
 ### Phase 7 — Puzzle Library
 - Load puzzles from Lichess puzzle CSV

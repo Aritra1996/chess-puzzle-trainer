@@ -13,7 +13,7 @@ test.describe('Phase 4 — Tree Navigation', () => {
 
   test('initial depth is 0 and breadcrumb shows "start"', async ({ page }) => {
     await expect(page.locator('.an-stats')).toContainText('depth 0')
-    await expect(page.locator('.breadcrumb')).toContainText('start')
+    await expect(page.locator('.move-token.fixed')).toBeVisible()
   })
 
   test('depth counter becomes 1 after recording one move', async ({ page }) => {
@@ -36,7 +36,7 @@ test.describe('Phase 4 — Tree Navigation', () => {
     await board.click({ position: sq(5, 6) }); await board.click({ position: sq(3, 5) })  // Nd5
     await board.click({ position: sq(0, 1) }); await board.click({ position: sq(0, 2) })  // a3
     // cursor is now at a3; click the Nd5 token to navigate back
-    await page.locator('.move-token', { hasText: 'Nd5' }).click()
+    await page.locator('.move-token:not(.tl-sample)', { hasText: 'Nd5' }).click()
     await expect(page.locator('.move-token.active')).toHaveText('Nd5')
   })
 
@@ -47,6 +47,6 @@ test.describe('Phase 4 — Tree Navigation', () => {
     await expect(page.locator('.move-token.active')).toHaveText('Nd5')
     await page.keyboard.press('ArrowLeft')
     // cursor moved to root sentinel (san = '') — no token gets active
-    await expect(page.locator('.move-token.active')).toHaveCount(0)
+    await expect(page.locator('.move-token.player.active')).toHaveCount(0)
   })
 })

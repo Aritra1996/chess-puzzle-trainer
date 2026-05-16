@@ -6,9 +6,10 @@ import type { Config } from '@lichess-org/chessground/config';
 import type { Key } from '@lichess-org/chessground/dist/types';
 
 interface Props {
-  fen: string;
+  fen:          string;
   orientation?: 'white' | 'black';
-  onMove?: (uci: string) => void;
+  onMove?:      (uci: string) => void;
+  lastMove?:    [string, string];
 }
 
 function pixelToSquare(
@@ -31,7 +32,7 @@ function pixelToSquare(
 }
 
 
-export default function PuzzleBoard({ fen, orientation = 'white', onMove }: Props) {
+export default function PuzzleBoard({ fen, orientation = 'white', onMove, lastMove }: Props) {
   const boardRef    = useRef<HTMLDivElement>(null);
   const cgRef       = useRef<Api | null>(null);
   const overlayRef  = useRef<HTMLDivElement>(null);
@@ -43,14 +44,16 @@ export default function PuzzleBoard({ fen, orientation = 'white', onMove }: Prop
     const config: Config = {
       fen,
       orientation,
-      viewOnly: true,
-      animation: { enabled: false },
-      highlight: { lastMove: false, check: false },
-      drawable: { enabled: false },
+      viewOnly:     true,
+      coordinates:  false,
+      animation:    { enabled: false },
+      highlight:    { lastMove: !!lastMove, check: false },
+      drawable:     { enabled: false },
+      ...(lastMove && { lastMove: lastMove as Key[] }),
     };
     cgRef.current = Chessground(boardRef.current, config);
     return () => { cgRef.current?.destroy(); };
-  }, [fen, orientation]);
+  }, [fen, orientation, lastMove]);
 
   useEffect(() => {
     if (pendingRef.current !== null) {

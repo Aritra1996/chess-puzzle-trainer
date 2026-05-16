@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import React from 'react'
 import MoveTree from '../MoveTree'
@@ -72,15 +72,92 @@ describe('MoveTree', () => {
   it('calls onTokenClick with the nodeId when a token is clicked', async () => {
     const onTokenClick = vi.fn()
     render(<MoveTree lines={[PLAYER_LINE]} onTokenClick={onTokenClick} />)
-    await userEvent.click(document.querySelector('.move-token')!)
+    await userEvent.click(document.querySelector('.move-token.player')!)
     expect(onTokenClick).toHaveBeenCalledWith('node-1')
   })
 
   it('calls onTokenClick when Enter is pressed on a token', async () => {
     const onTokenClick = vi.fn()
     render(<MoveTree lines={[PLAYER_LINE]} onTokenClick={onTokenClick} />)
-    document.querySelector<HTMLElement>('.move-token')!.focus()
+    document.querySelector<HTMLElement>('.move-token.player')!.focus()
     await userEvent.keyboard('{Enter}')
     expect(onTokenClick).toHaveBeenCalledWith('node-1')
+  })
+})
+
+describe('MoveTree — context token', () => {
+  it('renders "▸ start" when lastMoveLabel is not provided', () => {
+    render(<MoveTree lines={[]} rootNodeId="root-1" isAtRoot={false} />)
+    expect(screen.getByRole('button', { name: /▸ start/i })).toBeInTheDocument()
+  })
+
+  it('renders lastMoveLabel when provided', () => {
+    render(<MoveTree lines={[]} rootNodeId="root-1" isAtRoot={false} lastMoveLabel="8. Bc4" />)
+    expect(screen.getByRole('button', { name: /8\. Bc4/i })).toBeInTheDocument()
+  })
+
+  it('context token is visible even when lines is empty', () => {
+    render(<MoveTree lines={[]} rootNodeId="root-1" isAtRoot={false} />)
+    expect(screen.getByRole('button', { name: /▸ start/i })).toBeInTheDocument()
+  })
+
+  it('context token has "active" class when isAtRoot is true', () => {
+    render(<MoveTree lines={[]} rootNodeId="root-1" isAtRoot={true} />)
+    expect(screen.getByRole('button', { name: /▸ start/i })).toHaveClass('active')
+  })
+
+  it('context token does not have "active" class when isAtRoot is false', () => {
+    render(<MoveTree lines={[]} rootNodeId="root-1" isAtRoot={false} />)
+    expect(screen.getByRole('button', { name: /▸ start/i })).not.toHaveClass('active')
+  })
+
+  it('clicking context token calls onTokenClick with rootNodeId', () => {
+    const spy = vi.fn()
+    render(<MoveTree lines={[]} rootNodeId="root-42" isAtRoot={false} onTokenClick={spy} />)
+    fireEvent.click(screen.getByRole('button', { name: /▸ start/i }))
+    expect(spy).toHaveBeenCalledWith('root-42')
+  })
+
+  it('context token is the first child inside the first .tree-line, not a sibling above it', () => {
+    render(<MoveTree lines={[PLAYER_LINE]} rootNodeId="root-1" isAtRoot={false} />)
+    const firstLine = document.querySelector('.tree-line')
+    expect(firstLine).not.toBeNull()
+    const fixedInsideLine = firstLine!.querySelector('.move-token.fixed')
+    expect(fixedInsideLine).not.toBeNull()
+  })
+
+  it('renders exactly one .tree-line when lines is empty and rootNodeId is set', () => {
+    render(<MoveTree lines={[]} rootNodeId="root-1" isAtRoot={false} />)
+    expect(document.querySelectorAll('.tree-line')).toHaveLength(1)
+  })
+})
+
+describe('MoveTree — token titles', () => {
+  it('does not render .token-legend', () => {
+    const { container } = render(<MoveTree lines={[]} />)
+    expect(container.querySelector('.token-legend')).toBeNull()
+  })
+
+  it('token has title "mistake" when checkResult marks it wrong', () => {
+    const result: Map<string, string> = new Map([['node-1', 'wrong']])
+    render(<MoveTree lines={[PLAYER_LINE]} checkResult={result} />)
+    expect(document.querySelector('.move-token.player')).toHaveAttribute('title', 'mistake')
+  })
+
+  it('token has title "correct" when checkResult marks it correct', () => {
+    const result: Map<string, string> = new Map([['node-1', 'correct']])
+    render(<MoveTree lines={[PLAYER_LINE]} checkResult={result} />)
+    expect(document.querySelector('.move-token.player')).toHaveAttribute('title', 'correct')
+  })
+
+  it('token has title "illegal" when checkResult marks it illegal', () => {
+    const result: Map<string, string> = new Map([['node-1', 'illegal']])
+    render(<MoveTree lines={[PLAYER_LINE]} checkResult={result} />)
+    expect(document.querySelector('.move-token.player')).toHaveAttribute('title', 'illegal')
+  })
+
+  it('token has no title attribute when checkResult is not provided', () => {
+    render(<MoveTree lines={[PLAYER_LINE]} />)
+    expect(document.querySelector('.move-token.player')).not.toHaveAttribute('title')
   })
 })

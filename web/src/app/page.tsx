@@ -1,6 +1,9 @@
 import PuzzleGame from '@/components/PuzzleGame';
 
-const SAMPLE_FEN = 'r2qkb1r/pp2pppp/2p2n2/8/2BPP1b1/2N5/PPP2PPP/R1BQK2R b KQkq - 0 8';
+const SAMPLE_FEN      = 'r2qkb1r/pp2pppp/2p2n2/8/2BPP1b1/2N5/PPP2PPP/R1BQK2R b KQkq - 0 8';
+const SAMPLE_SOLUTION = 'f6e4';  // Nxe4 — exploits the g4 bishop pin on c3 against d1
+const LAST_MOVE       = 'Bc4';  // White's 8th move that led to SAMPLE_FEN
+const LAST_MOVE_UCI   = 'f1c4'; // bishop f1→c4 (dark-sq bishop remains on c1 in SAMPLE_FEN)
 
 export default function Home() {
   return (
@@ -27,7 +30,7 @@ export default function Home() {
       </header>
 
       <div className="panels">
-        <PuzzleGame fen={SAMPLE_FEN} />
+        <PuzzleGame fen={SAMPLE_FEN} solution={SAMPLE_SOLUTION} lastMove={LAST_MOVE} lastMoveUci={LAST_MOVE_UCI} />
       </div>
     </div>
   );

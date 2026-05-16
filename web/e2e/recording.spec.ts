@@ -29,7 +29,7 @@ test.describe('Phase 3 — Move Recording', () => {
     const board = page.locator('.board-container')
     await board.click({ position: sq(5, 6) })
     await board.click({ position: sq(3, 5) })
-    await expect(page.locator('.move-token', { hasText: 'Nd5' })).toBeVisible()
+    await expect(page.locator('.move-token.player', { hasText: 'Nd5' })).toBeVisible()
   })
 
   test('status bar updates after the first move is recorded', async ({ page }) => {
@@ -52,19 +52,19 @@ test.describe('Phase 3 — Move Recording', () => {
     const board = page.locator('.board-container')
     await board.click({ position: sq(5, 6) })
     await board.click({ position: sq(5, 6) })
-    await expect(page.locator('.move-token')).toHaveCount(0)
+    await expect(page.locator('.move-token.player')).toHaveCount(0)
   })
 
-  test('sq-highlight appears after the first click', async ({ page }) => {
+  test('square selection appears after the first click', async ({ page }) => {
     const board = page.locator('.board-container')
     await board.click({ position: sq(5, 6) })
-    await expect(page.locator('.sq-highlight')).toBeVisible()
+    await expect(page.locator('cg-board square.selected')).toBeVisible()
   })
 
-  test('sq-highlight disappears after completing a move', async ({ page }) => {
+  test('square selection disappears after completing a move', async ({ page }) => {
     const board = page.locator('.board-container')
     await board.click({ position: sq(5, 6) })
     await board.click({ position: sq(3, 5) })
-    await expect(page.locator('.sq-highlight')).not.toBeVisible()
+    await expect(page.locator('cg-board square.selected')).not.toBeVisible()
   })
 })
