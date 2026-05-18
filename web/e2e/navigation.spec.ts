@@ -8,6 +8,7 @@ const sq = (file: number, rank: number) => ({ x: (7 - file) * 60 + 30, y: (rank 
 
 test.describe('Phase 4 — Tree Navigation', () => {
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('visualis_tour_seen', '1'))
     await page.goto('/')
   })
 

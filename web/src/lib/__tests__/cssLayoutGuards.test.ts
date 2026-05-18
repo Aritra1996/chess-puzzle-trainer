@@ -43,4 +43,11 @@ describe('CSS layout guards', () => {
     expect(fixedActiveBlock).not.toBe('')               // rule must exist
     expect(fixedActiveBlock).toContain('animation: none') // cursor-pulse must be suppressed
   })
+
+  it('.tour-scrim overlay uses inline styles — selector must not exist in globals.css', () => {
+    const src = fs.readFileSync(CSS, 'utf8')
+    // Scrim is positioned via React inline style props (TourGuide.tsx).
+    // A CSS selector here silently fails in Next.js dev mode.
+    expect(src).not.toMatch(/\.tour-scrim\s*\{/)
+  })
 })

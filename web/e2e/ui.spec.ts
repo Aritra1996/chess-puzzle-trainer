@@ -4,6 +4,7 @@ const SAMPLE_FEN = 'r2qkb1r/pp2pppp/2p2n2/8/2BPP1b1/2N5/PPP2PPP/R1BQK2R b KQkq -
 
 test.describe('Phase 2.1 — Paper/Ink UI', () => {
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('visualis_tour_seen', '1'))
     await page.goto('/')
   })
 

@@ -618,6 +618,81 @@ cg-board square.last-move {
   margin-left: 6px;
 }
 
+/* ── Tour guide ── */
+@keyframes tour-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* driver.js popover overrides — match paper/ink theme */
+.driver-popover {
+  background: var(--paper) !important;
+  border: 1px solid rgba(31,29,26,.18) !important;
+  border-radius: 6px !important;
+  color: var(--ink) !important;
+  box-shadow: 0 4px 20px rgba(30, 24, 18, 0.18) !important;
+  min-width: 260px !important;
+  max-width: 320px !important;
+}
+
+.driver-popover * {
+  font-family: var(--sans) !important;
+}
+
+.driver-popover-title {
+  font-family: var(--serif) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: var(--ink) !important;
+}
+
+.driver-popover-description {
+  font-size: 13px !important;
+  color: var(--ink-soft) !important;
+  line-height: 1.55 !important;
+}
+
+.driver-popover-progress-text {
+  font-size: 11px !important;
+  color: var(--ink-faint) !important;
+}
+
+.driver-popover-footer button {
+  font-family: var(--sans) !important;
+  font-size: 12px !important;
+  border-radius: 4px !important;
+  padding: 4px 10px !important;
+  cursor: pointer !important;
+}
+
+/* prev button — ghost style */
+.driver-popover-footer button:first-child {
+  background: transparent !important;
+  color: var(--ink-soft) !important;
+  border-color: rgba(31,29,26,.22) !important;
+}
+
+.driver-popover-footer button:first-child:hover {
+  background: var(--paper-2) !important;
+  color: var(--ink) !important;
+}
+
+/* next / done button — blue primary style */
+.driver-popover-footer button:last-child {
+  background: var(--blue) !important;
+  color: #fff !important;
+  border-color: var(--blue) !important;
+  text-shadow: none !important;
+}
+
+.driver-popover-footer button:last-child:hover {
+  background: #1e3b7a !important;
+  border-color: #1e3b7a !important;
+}
+
+/* arrow colour matches popover background */
+.driver-popover-arrow { border-color: var(--paper) !important; }
+
 /* ── Responsive ── */
 @media (max-width: 960px) {
   .panels {

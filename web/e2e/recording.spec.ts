@@ -10,6 +10,7 @@ const sq = (file: number, rank: number) => ({
 
 test.describe('Phase 3 — Move Recording', () => {
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('visualis_tour_seen', '1'))
     await page.goto('/')
   })
 

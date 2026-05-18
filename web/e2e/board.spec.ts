@@ -4,6 +4,7 @@ const SAMPLE_FEN = 'r2qkb1r/pp2pppp/2p2n2/8/2BPP1b1/2N5/PPP2PPP/R1BQK2R b KQkq -
 
 test.describe('Phase 1 — Static Board', () => {
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('visualis_tour_seen', '1'))
     await page.goto('/')
   })
 
@@ -103,6 +104,7 @@ test.describe('Phase 1 — Static Board', () => {
   test('board shrinks below 480 px at a short viewport', async ({ browser }) => {
     const ctx  = await browser.newContext({ viewport: { width: 1280, height: 600 } })
     const page = await ctx.newPage()
+    await page.addInitScript(() => localStorage.setItem('visualis_tour_seen', '1'))
     await page.goto('/')
     const box = await page.locator('.board-container').boundingBox()
     expect(box!.width).toBeLessThan(480)
@@ -113,6 +115,7 @@ test.describe('Phase 1 — Static Board', () => {
   test('meta-strip bottom edge stays within viewport at a short viewport', async ({ browser }) => {
     const ctx  = await browser.newContext({ viewport: { width: 1280, height: 600 } })
     const page = await ctx.newPage()
+    await page.addInitScript(() => localStorage.setItem('visualis_tour_seen', '1'))
     await page.goto('/')
     const strip    = await page.locator('.meta-strip').boundingBox()
     const viewport = page.viewportSize()

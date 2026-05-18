@@ -12,6 +12,7 @@ const EVAL_TIMEOUT = 90_000  // Stockfish init (~5s) + depth-15 eval
 
 test.describe('Phase 6.4 — Solution Checking Smoke Test', () => {
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('visualis_tour_seen', '1'))
     await page.goto('/')
   })
 

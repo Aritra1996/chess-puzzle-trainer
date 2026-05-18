@@ -11,6 +11,10 @@ vi.mock('@/components/PuzzleGame', () => ({
   ),
 }))
 
+vi.mock('@/components/TourGuide', () => ({
+  default: () => null,
+}))
+
 const { default: Home } = await import('../page')
 
 const SAMPLE_FEN = 'r2qkb1r/pp2pppp/2p2n2/8/2BPP1b1/2N5/PPP2PPP/R1BQK2R b KQkq - 0 8'
