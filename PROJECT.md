@@ -185,16 +185,25 @@ chess-puzzle-trainer/
 - Hint button present in UI but not yet functional (requires solution loaded — Phase 6)
 - See `build_phases/phase5.md` / `phase5_test.md`; 75/75 web + 55/55 shared tests green
 
-### Phase 6 — Solution Checking
+### Phase 6 — Solution Checking ✅ COMPLETE
 - Solution passed as a `solution?: string` prop (space-separated UCI moves); hardcoded for now — Phase 7 fetches from PocketBase
-- Submit triggers Stockfish.js (WebAssembly, browser-only, no backend calls) to evaluate each node
-- **Two-mode checking**: forced line (opponent has 1 legal response) → strict UCI match; multi-response position → Stockfish eval for winning advantage
-- Flag each token: correct (green), wrong (red strikethrough), illegal (orange dashed); illegal node children are skipped
-- `chess.js` (already in project) used for legal move counting; `stockfish` npm package added for evaluation
-- Checking is batched at Submit; no live eval while recording
-- Clear on record/undo/reset; re-submit always re-checks fresh
+- Submit triggers Stockfish.js (WebAssembly, browser-only, **zero backend calls**) to evaluate each player node
+- **Single-mode checking**: illegal nodes → `'illegal'` (sync, children skipped); opponent moves → `'correct'` (sync, always); player moves → Stockfish eval at depth 15 (1.5-pawn winning threshold)
+- Flag each token: correct (green), wrong (red strikethrough), illegal (orange dashed)
+- `stockfish` npm package (WASM, ~7 MB, lazy-loaded on first Submit) added; chess.js already present
+- Checking batched at Submit; no live eval during recording; cleared on record/undo/reset
+- ResultBar shows verdict: "Clean line ✓" / "Not optimal" / "No moves recorded"
 - Hint button remains a no-op in this phase
-- Sub-phases: 6.1 shared checker logic + tests, 6.2 Stockfish wrapper (`web/src/lib/chessEngine.ts`), 6.3 Submit UI wiring + tests, 6.4 browser smoke test
+- Sub-phases completed:
+  - **6.1** — `shared/solutionChecker.ts`: `collectNodesToCheck` + `classifyWithoutEngine` + `mergeResults` (11 tests)
+  - **6.2** — `web/src/lib/chessEngine.ts`: async Stockfish wrapper, lazy worker init, FEN eval → correct/wrong
+  - **6.3** — Submit wired to UI: loading state ("Checking…"), `checkResult` forwarded to `MoveTree` tokens (8 tests)
+  - **6.4** — Browser smoke test: confirmed zero XHR/fetch calls during Submit
+  - **6.8.1** — Context token inline: `8. Bc4` dark chip appears on the same line as the first recorded move
+  - **6.8.2** — Context token styled as a button: dark background (`#2b2825`), italic, yellow outline on active state
+  - **6.8.3** — Last-move highlight: `lastMoveUci` prop wired through `PuzzleGame` → `PuzzleBoard` → Chessground `lastMove: Key[]`
+  - **6.8.4** — Board coordinates removed: `coordinates: false` in Chessground config; clean board for visual training
+- Test counts after Phase 6: **119/119 Vitest**, **53 Playwright** (all green)
 
 ### Phase 7 — Puzzle Library
 - Load puzzles from Lichess puzzle CSV
