@@ -50,4 +50,15 @@ describe('CSS layout guards', () => {
     // A CSS selector here silently fails in Next.js dev mode.
     expect(src).not.toMatch(/\.tour-scrim\s*\{/)
   })
+
+  it('PuzzleBoard imports Key from @lichess-org/chessground/types, not /dist/types', () => {
+    const src = fs.readFileSync(
+      path.resolve(__dirname, '../../components/PuzzleBoard.tsx'),
+      'utf8',
+    )
+    // /dist/types fails on Vercel (bundler moduleResolution enforces exports map)
+    // but silently works locally — guard prevents silent regression.
+    expect(src).toContain("from '@lichess-org/chessground/types'")
+    expect(src).not.toContain("from '@lichess-org/chessground/dist/types'")
+  })
 })

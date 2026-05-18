@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, fireEvent } from '@testing-library/react'
 import React from 'react'
+import type { Config } from '@lichess-org/chessground/config'
 
 // Mock Chessground before importing the component
 const mockSet     = vi.fn()
 const mockDestroy = vi.fn()
-const mockChessground = vi.fn(() => ({ destroy: mockDestroy, set: mockSet }))
+const mockChessground = vi.fn((_el: HTMLElement, _config: Config) => ({ destroy: mockDestroy, set: mockSet }))
 
 vi.mock('@lichess-org/chessground', () => ({
   Chessground: mockChessground,

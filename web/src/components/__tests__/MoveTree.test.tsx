@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import React from 'react'
 import MoveTree from '../MoveTree'
 import type { Line } from '@/shared/moveTree'
+import type { CheckStatus } from '@/shared/solutionChecker'
 
 const PLAYER_LINE: Line = {
   isActivePath: true,
@@ -139,19 +140,19 @@ describe('MoveTree — token titles', () => {
   })
 
   it('token has title "mistake" when checkResult marks it wrong', () => {
-    const result: Map<string, string> = new Map([['node-1', 'wrong']])
+    const result = new Map<string, CheckStatus>([['node-1', 'wrong']])
     render(<MoveTree lines={[PLAYER_LINE]} checkResult={result} />)
     expect(document.querySelector('.move-token.player')).toHaveAttribute('title', 'mistake')
   })
 
   it('token has title "correct" when checkResult marks it correct', () => {
-    const result: Map<string, string> = new Map([['node-1', 'correct']])
+    const result = new Map<string, CheckStatus>([['node-1', 'correct']])
     render(<MoveTree lines={[PLAYER_LINE]} checkResult={result} />)
     expect(document.querySelector('.move-token.player')).toHaveAttribute('title', 'correct')
   })
 
   it('token has title "illegal" when checkResult marks it illegal', () => {
-    const result: Map<string, string> = new Map([['node-1', 'illegal']])
+    const result = new Map<string, CheckStatus>([['node-1', 'illegal']])
     render(<MoveTree lines={[PLAYER_LINE]} checkResult={result} />)
     expect(document.querySelector('.move-token.player')).toHaveAttribute('title', 'illegal')
   })

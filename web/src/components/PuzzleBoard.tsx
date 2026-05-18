@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Chessground } from '@lichess-org/chessground';
 import type { Api } from '@lichess-org/chessground/api';
 import type { Config } from '@lichess-org/chessground/config';
-import type { Key } from '@lichess-org/chessground/dist/types';
+import type { Key } from '@lichess-org/chessground/types';
 
 interface Props {
   fen:          string;
