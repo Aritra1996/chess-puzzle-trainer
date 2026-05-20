@@ -68,3 +68,24 @@ test('can record a move by tapping on mobile', async ({ page }) => {
 
   await expect(page.locator('.an-stats')).toContainText('nodes')
 })
+
+test('board fits and is visible on a 320px narrow phone', async ({ browser }) => {
+  // Uses browser.newContext so this test can run its own viewport independently
+  // of the test.use({ width: 375 }) set at the top of the file.
+  const ctx  = await browser.newContext({ viewport: { width: 320, height: 568 } })
+  const page = await ctx.newPage()
+  await page.addInitScript(() => localStorage.setItem('visualis_tour_seen', '1'))
+  await page.goto('/')
+
+  const board = page.locator('.board-container')
+  await expect(board).toBeVisible()
+
+  const box = await board.boundingBox()
+  // Board must fit horizontally within the 320px viewport
+  expect(box!.width).toBeLessThanOrEqual(320)
+  expect(box!.x).toBeGreaterThanOrEqual(0)
+  // Board must be large enough to be usable (min ~200px)
+  expect(box!.width).toBeGreaterThan(200)
+
+  await ctx.close()
+})

@@ -61,4 +61,44 @@ describe('CSS layout guards', () => {
     expect(src).toContain("from '@lichess-org/chessground/types'")
     expect(src).not.toContain("from '@lichess-org/chessground/dist/types'")
   })
+
+  // ── Phase 6.8.9 guards — fluid CSS (px → rem) ──────────────────────
+
+  it('--board-size formula uses rem cap, not px', () => {
+    const src = fs.readFileSync(CSS, 'utf8')
+
+    // Old form that must NOT appear after the refactor:
+    //   --board-size: min(480px, ...)
+    //   --board-size: min(380px, ...)
+    expect(src).not.toMatch(/--board-size:\s*min\(\d+px/)
+
+    // New form that MUST be present:
+    //   --board-size: min(30rem, ...)  or  min(23.75rem, ...)
+    expect(src).toMatch(/--board-size:\s*min\([\d.]+rem/)
+  })
+
+  it('board-container has no explicit px width/height override inside @media blocks', () => {
+    const src = fs.readFileSync(CSS, 'utf8')
+
+    // Old pattern that must be gone after refactor:
+    //   .board-container { width:  min(480px, calc(100vw - 80px)); ... }  (960px block)
+    //   .board-container { width:  min(380px, calc(100vw - 52px)); ... }  (600px block)
+    //
+    // After the refactor .board-container only uses var(--board-size) — no direct px override.
+    expect(src).not.toMatch(/\.board-container\s*\{[^}]*width:\s*min\(\d+px/)
+    expect(src).not.toMatch(/\.board-container\s*\{[^}]*height:\s*min\(\d+px/)
+  })
+
+  it('app-header height uses rem, not px', () => {
+    const src = fs.readFileSync(CSS, 'utf8')
+
+    const headerBlock = src.match(/\.app-header\s*\{[^}]*\}/)?.[0] ?? ''
+    expect(headerBlock).not.toBe('')
+
+    // Must not contain a raw-px height (e.g. height: 56px)
+    expect(headerBlock).not.toMatch(/height:\s*\d+px/)
+
+    // Must contain a rem height (e.g. height: 3.5rem)
+    expect(headerBlock).toMatch(/height:\s*[\d.]+rem/)
+  })
 })
